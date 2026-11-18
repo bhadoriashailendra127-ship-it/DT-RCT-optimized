@@ -1,0 +1,22 @@
+PREFIX ran: <http://example.com/ran-dt/>
+SELECT DISTINCT ?from ?predicate ?to WHERE {
+  GRAPH <http://example.com/ran-dt/graph/current> {
+    {
+      ?node ?p ?value .
+      FILTER(?p IN (ran:locatedAt, ran:hostedOn, ran:containsNode, ran:connectsToCUCP))
+      FILTER(isIRI(?value) && STRSTARTS(STR(?value), "http://example.com/ran-dt/"))
+      BIND(?node AS ?from)
+      BIND(?p AS ?predicate)
+      BIND(?value AS ?to)
+    }
+    UNION
+    {
+      ?value ?p2 ?node .
+      FILTER(?p2 IN (ran:locatedAt, ran:hostedOn, ran:containsNode, ran:connectsToCUCP))
+      FILTER(isIRI(?value) && STRSTARTS(STR(?value), "http://example.com/ran-dt/"))
+      BIND(?value AS ?from)
+      BIND(?p2 AS ?predicate)
+      BIND(?node AS ?to)
+    }
+  }
+}

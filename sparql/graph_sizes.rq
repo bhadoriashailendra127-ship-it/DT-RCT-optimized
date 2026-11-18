@@ -1,0 +1,2 @@
+# Triples per graph. params: none
+SELECT ?g (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s ?p ?o } } GROUP BY ?g ORDER BY DESC(?n)

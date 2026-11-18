@@ -1,0 +1,9 @@
+# The 10 scenarios (baseline). params: none
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?scenario ?number ?name ?summary FROM <http://www.openrdf.org/schema/sesame#nil> WHERE {
+  ?scenario a ran:Scenario ; ran:scenarioNumber ?number .
+  OPTIONAL { ?scenario ran:scenarioName ?name }
+  OPTIONAL { ?scenario ran:scenarioSummary ?summary }
+} ORDER BY ?number

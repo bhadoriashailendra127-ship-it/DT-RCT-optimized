@@ -1,0 +1,7 @@
+# Which metrics each entity type reports. params: none
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?metric (COUNT(DISTINCT ?e) AS ?entities) (COUNT(*) AS ?readings) WHERE {
+  GRAPH <http://example.com/ran-dt/graph/telemetry> { ?o ran:observes ?e ; ran:metric ?metric } }
+GROUP BY ?metric ORDER BY ?metric

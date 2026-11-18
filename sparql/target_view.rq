@@ -1,0 +1,27 @@
+# target-view: current against target, per element and KPI.
+PREFIX ran: <http://example.com/ran-dt/>
+SELECT ?element ?metric ?current ?target (?target - ?current AS ?change) WHERE {
+  VALUES (?metric ?pred) {
+    ("cpu_percent" ran:cpuPercent)
+    ("load_percent" ran:loadPercent)
+    ("session_load_percent" ran:sessionLoadPercent)
+    ("utilisation_percent" ran:utilisationPercent)
+    ("active_users" ran:activeUsers)
+    ("throughput_mbps" ran:throughputMbps)
+    ("p5_throughput_mbps" ran:p5ThroughputMbps)
+    ("latency_ms" ran:latencyMs)
+    ("ping_pong_pct" ran:pingPongRate)
+    ("ho_failure_pct" ran:handoverFailureRate)
+  }
+  GRAPH <http://example.com/ran-dt/graph/target> { ?element ?pred ?target }
+  OPTIONAL {
+    GRAPH <http://example.com/ran-dt/graph/current> {
+      ?o ran:observes ?element ; ran:metric ?metric ; ran:observedAt ?at ; ran:value ?current .
+      FILTER NOT EXISTS {
+        ?o2 ran:observes ?element ; ran:metric ?metric ; ran:observedAt ?at2 .
+        FILTER(?at2 > ?at)
+      }
+    }
+  }
+}
+ORDER BY DESC(?change)

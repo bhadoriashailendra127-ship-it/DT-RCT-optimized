@@ -1,0 +1,10 @@
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?node ?type ?label ?comment WHERE {
+  GRAPH <http://example.com/ran-dt/graph/current> {
+    ?node a ?type .
+    FILTER(?type IN (ran:Site, ran:OCloudHost, ran:OCloudDUHost, ran:OCU, ran:O_DU))
+    OPTIONAL { ?node rdfs:label ?label }
+    OPTIONAL { ?node rdfs:comment ?comment }
+  }
+} ORDER BY ?type ?label ?node

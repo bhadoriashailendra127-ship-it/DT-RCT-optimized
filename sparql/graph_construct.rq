@@ -1,0 +1,9 @@
+# Query 1: network in Current graph, excluding live observation subjects.
+# CONSTRUCT query for GraphDB Workbench / export. The browser UI uses the equivalent SELECT form.
+CONSTRUCT { ?s ?p ?o }
+WHERE {
+  GRAPH <http://example.com/ran-dt/graph/current> {
+    ?s ?p ?o .
+    FILTER(!STRSTARTS(STR(?s), "http://example.com/ran-dt/obs/"))
+  }
+}

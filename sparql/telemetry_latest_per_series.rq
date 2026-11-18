@@ -1,0 +1,17 @@
+# Query 3: newest reading per entity/metric series since the supplied time.
+# Replace {{since}} with an xsd:dateTime literal, e.g. 2000-01-01T00:00:00Z.
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?e ?m ?v WHERE {
+  GRAPH <http://example.com/ran-dt/graph/current> {
+    {
+      SELECT ?e ?m (MAX(?t0) AS ?t)
+      WHERE {
+        ?o0 a ran:Observation ; ran:observes ?e ; ran:metric ?m ; ran:observedAt ?t0 .
+        FILTER(?t0 >= "{{since}}"^^xsd:dateTime)
+      }
+      GROUP BY ?e ?m
+    }
+    ?o a ran:Observation ; ran:observes ?e ; ran:metric ?m ; ran:observedAt ?t ; ran:value ?v .
+  }
+}

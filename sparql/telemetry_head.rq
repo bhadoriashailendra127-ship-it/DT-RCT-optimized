@@ -1,0 +1,8 @@
+# Query 2: timestamp of the newest live observation.
+PREFIX ran: <http://example.com/ran-dt/>
+SELECT (MAX(?t) AS ?h)
+WHERE {
+  GRAPH <http://example.com/ran-dt/graph/current> {
+    ?o a ran:Observation ; ran:observedAt ?t
+  }
+}

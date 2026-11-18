@@ -1,0 +1,8 @@
+# Newest readings (live feed). params: limit (default 100)
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?e ?m ?v ?t WHERE {
+  GRAPH <http://example.com/ran-dt/graph/telemetry> {
+    ?o a ran:Observation ; ran:observes ?e ; ran:metric ?m ; ran:value ?v ; ran:observedAt ?t } }
+ORDER BY DESC(?t) LIMIT {{limit}}

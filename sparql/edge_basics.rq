@@ -1,0 +1,9 @@
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?edge ?label WHERE {
+  GRAPH <http://example.com/ran-dt/graph/current> {
+    ?s ?edge ?o .
+    FILTER(?edge IN (ran:locatedAt, ran:hostedOn, ran:containsNode, ran:connectsToCUCP))
+  }
+  OPTIONAL { ?edge rdfs:label ?label . FILTER(LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")) }
+}

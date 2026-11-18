@@ -1,0 +1,9 @@
+# Time series for charts. params: entity, metric, since (ISO UTC, default 2000-01-01T00:00:00Z), limit (default 2000)
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?t ?v WHERE {
+  GRAPH <http://example.com/ran-dt/graph/telemetry> {
+    ?o ran:observes ran:{{entity}} ; ran:metric "{{metric}}" ; ran:value ?v ; ran:observedAt ?t
+    FILTER(?t >= "{{since}}"^^xsd:dateTime) } }
+ORDER BY ?t LIMIT {{limit}}

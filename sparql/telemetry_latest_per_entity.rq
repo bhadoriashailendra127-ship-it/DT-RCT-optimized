@@ -1,0 +1,10 @@
+# Latest value per entity for one metric. params: metric (e.g. cpu_percent)
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?e ?latest ?v WHERE {
+  { SELECT ?e (MAX(?t) AS ?latest) WHERE {
+      GRAPH <http://example.com/ran-dt/graph/telemetry> { ?o ran:observes ?e ; ran:metric "{{metric}}" ; ran:observedAt ?t } }
+    GROUP BY ?e }
+  GRAPH <http://example.com/ran-dt/graph/telemetry> { ?o2 ran:observes ?e ; ran:metric "{{metric}}" ; ran:observedAt ?latest ; ran:value ?v }
+} ORDER BY ?e

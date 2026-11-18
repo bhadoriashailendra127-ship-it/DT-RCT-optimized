@@ -1,0 +1,7 @@
+# Topology edges (baseline). params: none
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?a ?rel ?b FROM <http://www.openrdf.org/schema/sesame#nil> WHERE {
+  VALUES ?rel { ran:connectsToCUCP ran:hostedOn ran:hasCell ran:containsNode ran:locatedAt ran:connectsTo ran:controls ran:serves ran:neighbourOf }
+  ?a ?rel ?b }

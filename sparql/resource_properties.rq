@@ -1,0 +1,5 @@
+# All properties of one resource. params: entity (e.g. DU1)
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?p ?o WHERE { ran:{{entity}} ?p ?o } ORDER BY ?p

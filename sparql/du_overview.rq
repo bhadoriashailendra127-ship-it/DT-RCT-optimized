@@ -1,0 +1,12 @@
+# All DUs with CPU, host, site (baseline). params: none
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?du ?cpu ?host ?site
+FROM <http://www.openrdf.org/schema/sesame#nil>
+WHERE {
+  ?du a ran:O_DU .
+  OPTIONAL { ?du ran:cpuPercent ?cpu }
+  OPTIONAL { ?du ran:hostedOn ?host }
+  OPTIONAL { ?du ran:locatedAt ?site }
+} ORDER BY ?du

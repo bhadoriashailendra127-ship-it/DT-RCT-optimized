@@ -1,0 +1,8 @@
+PREFIX ran: <http://example.com/ran-dt/>
+SELECT ?node ?p ?value WHERE {
+  GRAPH <http://example.com/ran-dt/graph/current> {
+    ?node a ?type ; ?p ?value .
+    FILTER(?type IN (ran:Site, ran:OCloudHost, ran:OCloudDUHost, ran:OCU, ran:O_DU))
+    FILTER(!STRSTARTS(STR(?node), "http://example.com/ran-dt/obs/"))
+  }
+} ORDER BY ?node ?p

@@ -1,0 +1,14 @@
+# Cells with KPIs (baseline + synthetic). params: none
+PREFIX ran: <http://example.com/ran-dt/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?cell ?name ?load ?users ?hoFail ?p5 ?pingPong ?du WHERE {
+  ?cell a ran:Cell .
+  OPTIONAL { ?cell ran:cellName ?name }
+  OPTIONAL { ?cell ran:loadPercent ?load }
+  OPTIONAL { ?cell ran:activeUsers ?users }
+  OPTIONAL { ?cell ran:handoverFailureRate ?hoFail }
+  OPTIONAL { ?cell ran:p5ThroughputMbps ?p5 }
+  OPTIONAL { ?cell ran:pingPongRate ?pingPong }
+  OPTIONAL { ?du ran:hasCell ?cell }
+} ORDER BY ?cell
