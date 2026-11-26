@@ -209,3 +209,112 @@ ssh -N -L 4000:127.0.0.1:4000 ubuntu@10.161.4.175
 Open `http://localhost:4000`, select RAN, then Ontology Graph. Choose Current or Target state. The graph uses the named graph IRIs above. Run Preview first; Execute writes only to Target.
 
 **Isolation:** The RAN route uses `/ran-graphdb` to proxy to `10.161.4.199:7200` and `/ran-whatif` to proxy to `10.161.4.199:8010`. Existing Core `/graphdb` and Transport `/transport-api` proxies remain pointed at `127.0.0.1` on `10.161.4.175`; their repository and backend configuration is not changed by the RAN update.
+
+### RAN Traffic Ingestion page
+
+The RAN Data Ingestion screen presents a site selector, a per-UE demand scenario slider, site-level KPI cards, and a CU-cluster table. Site/DU/CU topology properties and latest telemetry are queried from `Traffic_Steering` in the `http://example.com/ran-dt/graph/current` named graph. The page refreshes every 20 seconds. Missing ontology metrics are displayed as `—`; the UI does not synthesize CPU, user, throughput, PRB, or capacity readings. The CPU threshold uses a value found in the graph when available and otherwise displays the documented 85% threshold. The per-UE slider is a What-if scenario input only; it does not write telemetry or alter the running simulator.
+
+Updated files for this page:
+- `src/components/ran/RANTelemetryTab.jsx`
+- `src/ranGraphdbApi.js`
+- `src/App.css`
+
+
+
+
+***********************************
+// Site-level traffic-ingestion view. All measurements are read from the RAN
+// Current named graph; missing ontology fields remain null instead of being fabricated.
+export async function loadRANSiteIngestion() {
+  const graphRows = await runRANSparql(`${PREFIX}
+    SELECT ?s ?p ?o WHERE {
+      GRAPH <${CURRENT_GRAPH}> {
+        ?s ?p ?o .
+        FILTER(!STRSTARTS(STR(?s), "${OBS_PREFIX}"))
+      }
+    }`);
+  const telemetry = await loadRANTelemetry({ graphIri: CURRENT_GRAPH });
+  const props = new Map();
+  const types = new Map();
+  const put = (id, predicate, value) => {
+    if (!props.has(id)) props.set(id, {});
+    const key = localName(predicate).toLowerCase();
+    const current = props.get(id)[key];
+    if (key === 'type' || key === 'label' || current == null) props.get(id)[key] = value;
+  };
+  graphRows.forEach((r) => {
+    const id = r.s.value;
+    const pred = r.p.value;
+    const value = r.o.value;
+    put(id, pred, value);
+    if (pred.endsWith('#type') || pred.endsWith('/type')) {
+      const type = localName(value);
+      if (!types.has(id)) types.set(id, new Set());
+      types.get(id).add(type);
+    }
+  });
+  const idsOf = (type) => [...types.entries()].filter(([, set]) => set.has(type)).map(([id]) => id);
+  const sites = idsOf('Site').map((id) => ({ id, label: props.get(id)?.label || localName(id) }));
+  const dus = idsOf('O_DU').map((id) => ({ id, p: props.get(id) || {} }));
+  const cus = idsOf('OCU').map((id) => ({ id, p: props.get(id) || {} }));
+  const metricValues = new Map();
+  telemetry.latest.forEach((r) => {
+    const id = r.entity.startsWith(RAN_NS) ? r.entity : `${RAN_NS}${r.entity}`;
+    if (!metricValues.has(id)) metricValues.set(id, {});
+    metricValues.get(id)[String(r.metric).toLowerCase()] = Number(r.value);
+  });
+  const read = (id, names) => {
+    const p = props.get(id) || {};
+    const m = metricValues.get(id) || {};
+    for (const name of names) {
+      const key = name.toLowerCase();
+      if (m[key] != null && Number.isFinite(m[key])) return m[key];
+      if (p[key] != null && Number.isFinite(Number(p[key]))) return Number(p[key]);
+    }
+    return null;
+  };
+  const relation = (id, names) => {
+    const p = props.get(id) || {};
+    for (const name of names) if (p[name.toLowerCase()]) return p[name.toLowerCase()];
+    return null;
+  };
+  const siteFor = (id) => {
+    const direct = relation(id, ['locatedAt', 'site']);
+    if (direct && sites.some((x) => x.id === direct)) return direct;
+    const host = relation(id, ['hostedOn', 'host']);
+    return host ? relation(host, ['locatedAt', 'site']) : null;
+  };
+  const clusters = [];
+  sites.forEach((site) => {
+    const siteDus = dus.filter((du) => siteFor(du.id) === site.id);
+    const siteCus = cus.filter((cu) => siteFor(cu.id) === site.id || siteDus.some((du) => relation(du.id, ['connectsToCUCP', 'cu', 'servedBy']) === cu.id));
+    siteCus.forEach((cu) => {
+      const linked = siteDus.filter((du) => relation(du.id, ['connectsToCUCP', 'cu', 'servedBy']) === cu.id);
+      const members = linked.length ? linked : (siteCus.length === 1 ? siteDus : []);
+      const duCpuValues = members.map((du) => read(du.id, ['cpu_percent', 'cpuPercent', 'cpu'])).filter((v) => v != null);
+      const duPrbValues = members.map((du) => read(du.id, ['prb_dl_percent', 'dlPrbPercent', 'prbDl', 'dlPrb'])).filter((v) => v != null);
+      const cpus = members.map((du) => read(du.id, ['allocated_cores', 'allocatedCores', 'coresUsed'])).filter((v) => v != null);
+      const total = read(cu.id, ['total_cores', 'totalCores', 'serverCores']);
+      const used = read(cu.id, ['cores_used', 'coresUsed', 'allocated_cores', 'allocatedCores']);
+      const maxCpu = duCpuValues.length ? Math.max(...duCpuValues) : null;
+      const cuCpu = read(cu.id, ['cpu_percent', 'cpuPercent', 'cpu']);
+      const threshold = read(cu.id, ['cpu_threshold_percent', 'cpuThresholdPercent', 'overloadThresholdPercent']);
+      const limit = threshold ?? 85;
+      const status = maxCpu == null && cuCpu == null ? 'NO DATA' : Math.max(maxCpu ?? 0, cuCpu ?? 0) >= limit ? 'OVERLOAD' : 'NORMAL';
+      clusters.push({ id: cu.id, site: site.id, label: props.get(cu.id)?.label || localName(cu.id), duCount: members.length, host: members.map((du) => localName(relation(du.id, ['hostedOn', 'host']) || '')).filter(Boolean).join(', ') || null, duCpu: duCpuValues.length ? Math.max(...duCpuValues) : null, duPrb: duPrbValues.length ? duPrbValues.reduce((a, b) => a + b, 0) / duPrbValues.length : null, cuCpu, coresUsed: used ?? (cpus.length ? cpus.reduce((a, b) => a + b, 0) : null), totalCores: total, status });
+    });
+  });
+  const thresholdValues = [...props.values()].map((p) => p.cputhresholdpercent ?? p.overloadthresholdpercent).filter((v) => v != null && Number.isFinite(Number(v)));
+  const threshold = thresholdValues.length ? Number(thresholdValues[0]) : 85;
+  const siteSummaries = sites.map((site) => {
+    const members = dus.filter((du) => siteFor(du.id) === site.id);
+    const userCounts = members.map((du) => read(du.id, ['active_users', 'activeUsers', 'users'])).filter((v) => v != null);
+    const throughput = members.map((du) => read(du.id, ['throughput_mbps', 'throughputMbps', 'dlThroughputMbps'])).filter((v) => v != null);
+    const capacities = members.map((du) => read(du.id, ['dl_capacity_mbps', 'dlCapacityMbps', 'duDlCapacityMbps', 'throughputCapacityMbps'])).filter((v) => v != null);
+    const cpu = members.map((du) => read(du.id, ['cpu_percent', 'cpuPercent', 'cpu'])).filter((v) => v != null);
+    const users = userCounts.reduce((a, b) => a + b, 0);
+    const totalThroughput = throughput.reduce((a, b) => a + b, 0);
+    return { ...site, users: userCounts.length ? users : null, perUeMbps: users > 0 && throughput.length ? totalThroughput / users : null, dlCapacityMbps: capacities.length ? capacities.reduce((a, b) => a + b, 0) : null, peakCpu: cpu.length ? Math.max(...cpu) : null };
+  });
+  return { sites: siteSummaries, clusters, readings: telemetry.latest.length, head: telemetry.head, threshold };
+}
